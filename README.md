@@ -1,92 +1,227 @@
-# ATAC-seq Peak Prediction with CNN
+<div align="center">
 
-A convolutional neural network that predicts chromatin accessibility (ATAC-seq peaks)
-from DNA sequence — inspired by the scBasset architecture (Yuan & Kelley, Nature Methods 2022).
+# 🧬 ATAC-Seq Peak Prediction with CNN
 
-## What this does
+**Predicting chromatin accessibility from DNA sequence using deep learning**
 
-Given a DNA sequence (500 bp), the model predicts whether that region will be
-**open chromatin** (accessible, ATAC-seq peak) or **closed chromatin** (inaccessible).
+[![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![AUROC](https://img.shields.io/badge/AUROC-0.908-blue)](results/roc_curve.png)
 
-This is the core prediction problem for sequence-to-function deep learning models
-in regulatory genomics, including:
-- [scBasset](https://www.nature.com/articles/s41592-022-01562-8): single-cell ATAC-seq modelling
-- [Enformer](https://www.nature.com/articles/s41592-021-01252-x): gene expression prediction
-- [Linder et al. 2025](https://www.nature.com/articles/s41588-024-02053-6): RNA-seq from sequence
+*Inspired by [scBasset](https://www.nature.com/articles/s41592-022-01562-8) (Yuan & Kelley, Nature Methods 2022)*
 
-## Why this architecture works
+</div>
 
-DNA sequence → one-hot encoding (A/C/G/T → 4-channel tensor)
-→ Stacked convolutional layers (learn motif patterns at different scales)
-→ Residual connections (allow deeper networks without vanishing gradients)
-→ Global average pooling (position-invariant summary)
-→ Dense layers → Binary output (open/closed)
+---
 
-The convolutional filters learn to recognize transcription factor binding motifs
-(AP-1, ETS, CTCF etc.) that drive chromatin accessibility.
+## 📌 Overview
 
-## Project Structure
+This repository implements a **convolutional neural network (CNN)** that learns to predict
+**open chromatin regions (ATAC-seq peaks)** directly from 500 bp DNA sequence windows.
+
+The model learns transcription factor binding motifs as convolutional filters — the same
+sequence patterns that drive chromatin accessibility in living cells. This is the core
+prediction problem in regulatory genomics, underpinning models like
+[Enformer](https://www.nature.com/articles/s41592-021-01252-x) and
+[scBasset](https://www.nature.com/articles/s41592-022-01562-8).
+
+---
+
+## 🔬 Biology
+
+Open chromatin regions contain **TF binding motifs** that displace nucleosomes,
+making DNA accessible for gene regulation. The CNN learns these patterns as filters:
+
+| TF Family | Motif | Role |
+|-----------|-------|------|
+| **AP-1** (FOS/JUN) | `TGAGTCA` | Pioneer — drives chromatin opening |
+| **ETS** | `GAGGAAGT` | Immune & cancer accessibility |
+| **CTCF** | `CCGCGAGGCGGCAG` | Chromatin boundary/insulator |
+| **GATA** | `TGATAA` | Hematopoietic specification |
+| **SP1** | `GGGCGG` | Ubiquitous activator |
+
+---
+
+## 🏗️ Model Architecture
 
 ```
-atac_cnn/
-├── src/
-│   ├── model.py        # CNN architecture (the core of this project)
-│   ├── dataset.py      # PyTorch Dataset — DNA one-hot encoding
-│   ├── train.py        # Training loop with validation
-│   ├── evaluate.py     # Metrics, ROC curves, confusion matrix
-│   └── utils.py        # DNA utilities, reproducibility helpers
-├── data/
-│   └── generate_synthetic.py   # Generate training data (no downloads needed)
-├── notebooks/
-│   └── tutorial.ipynb  # Step-by-step walkthrough
-├── train_model.py      # Main entry point — run this to train
-├── predict.py          # Run predictions on new sequences
-├── requirements.txt
-└── environment.yml
+DNA (500 bp) → One-hot encode (4 × 500)
+    │
+    ├─ Stem Conv (128 filters, k=15)   # motif detection
+    ├─ MaxPool (/2)
+    ├─ Expansion Conv (256 filters)    # complex combinations
+    ├─ MaxPool (/2)
+    ├─ Residual Blocks × 4             # deep feature learning
+    ├─ Global Average Pool             # position-invariant
+    └─ Dense → Sigmoid                 # P(open chromatin)
+
+Parameters: ~2.1 million
 ```
 
-## Quick Start
+**Key choices:** residual skip connections (He et al. 2016),
+BCEWithLogitsLoss for numerical stability,
+global average pooling for position invariance.
+
+---
+
+## 📊 Results
+
+### Model Performance
+
+| Metric | Value |
+|--------|-------|
+| 🎯 **AUROC** | **0.908** |
+| 📈 **AUPRC** | **0.927** |
+| ✅ **Accuracy** | **79.7%** |
+
+> AUROC > 0.90 is consistent with scBasset on ENCODE ATAC-seq data.
+
+### Visualizations
+
+<table>
+  <tr>
+    <td align="center"><b>ROC Curve</b></td>
+    <td align="center"><b>Score Distribution</b></td>
+  </tr>
+  <tr>
+    <td><img src="results/roc_curve.png" width="380"/></td>
+    <td><img src="results/score_distribution.png" width="380"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Training Curves</b></td>
+    <td align="center"><b>Threshold Analysis</b></td>
+  </tr>
+  <tr>
+    <td><img src="results/training_curves.png" width="380"/></td>
+    <td><img src="results/threshold_comparison.png" width="380"/></td>
+  </tr>
+</table>
+
+### Threshold Sensitivity Analysis
+
+| Threshold | Sensitivity | Specificity | Accuracy | F1 |
+|-----------|------------|-------------|----------|----|
+| `0.1` | 88.7% | 71.4% | 80.1% | 0.819 |
+| `0.2` | 76.0% | 91.1% | 83.5% | 0.823 |
+| `0.3` | 70.9% | 94.5% | 82.5% | 0.804 |
+| `0.4` | 66.0% | 96.6% | 81.1% | 0.780 |
+| `0.5` | 62.1% | 97.8% | 79.7% | 0.756 ← default |
+| `0.6` | 58.7% | 98.5% | 78.3% | 0.733 |
+| `0.7` | 55.7% | 98.8% | 76.9% | 0.710 |
+
+
+---
+
+## 🚀 Quick Start
+
+### Installation
 
 ```bash
-# 1. Set up environment
+git clone https://github.com/Nikhila123456/ATAC-Seq-Peak-CNN.git
+cd ATAC-Seq-Peak-CNN
 conda env create -f environment.yml
 conda activate atac-cnn
-
-# 2. Generate synthetic training data
-python data/generate_synthetic.py
-
-# 3. Train the model
-python train_model.py
-
-# 4. Evaluate results (saved to results/)
-python predict.py --sequence "ATGCATGCATGC..."
 ```
 
-## Understanding the Biology
+### Run Full Pipeline
 
-**ATAC-seq** (Assay for Transposase-Accessible Chromatin using sequencing) measures
-which regions of the genome are "open" and accessible to transcription factors.
+```bash
+# 1. Generate synthetic training data (10,000 sequences with real TF motifs)
+python data/generate_synthetic.py
 
-Open regions contain **transcription factor binding motifs** — short sequence patterns
-(6-12 bp) that TFs recognize and bind to. A CNN learns these patterns as convolutional
-filters, exactly like how an image CNN learns edges and textures.
+# 2. Train model (early stopping, ~30 epochs)
+python train_model.py
 
-**Positive training examples**: sequences containing known accessibility motifs
-(AP-1: TGASTCA, ETS: GGAA, CTCF: CCGCGNGGNGGCAG)
+# 3. Threshold analysis
+python threshold_comparison.py
 
-**Negative training examples**: random genomic sequences lacking these motifs
+# 4. Predict on new sequences
+python predict.py --sequence "ATGCATGCTGAGTCAATGCATGC"
+python predict.py --fasta   my_peaks.fasta
+```
 
-## Key Concepts for Interviews
+---
 
-- **One-hot encoding**: A → [1,0,0,0], C → [0,1,0,0], G → [0,0,1,0], T → [0,0,0,1]
-- **Conv1d**: scans a 1D filter along the sequence — learns motifs of fixed width
-- **Dilated convolutions**: expand receptive field to capture long-range dependencies
-- **Residual connections**: skip connections that stabilize deep network training
-- **Global average pooling**: makes prediction position-invariant (peak anywhere in window)
-- **Attribution/saliency**: DeepLIFT/GradCAM shows which sequence positions drive predictions
+## 📁 Repository Structure
 
-## References
+```
+ATAC-Seq-Peak-CNN/
+│
+├── 📂 src/
+│   ├── model.py              # CNN architecture (start here)
+│   ├── dataset.py            # PyTorch Dataset + DataLoader
+│   ├── train.py              # Training loop + early stopping
+│   ├── evaluate.py           # AUROC, ROC, confusion matrix
+│   └── utils.py              # One-hot encoding, DNA utilities
+│
+├── 📂 data/
+│   └── generate_synthetic.py # Synthetic ATAC-seq training data
+│
+├── 📂 results/               # Model checkpoint + evaluation plots
+│
+├── train_model.py            # ▶ Main entry point
+├── predict.py                # Inference on new sequences
+├── threshold_comparison.py   # Sensitivity/specificity analysis
+├── environment.yml
+└── requirements.txt
+```
 
-- Yuan H & Kelley DR. scBasset (2022) — this model's main inspiration
-- Avsec Ž et al. Enformer (2021) — long-range sequence-to-expression
-- Linder J et al. (2025) — RNA-seq coverage from DNA sequence
+---
+
+## 🔧 Extending to Real Data
+
+```bash
+# Download ENCODE ATAC-seq peaks (e.g. GM12878 immune cell line)
+# https://www.encodeproject.org/
+
+# Extract sequences (peak center ± 250 bp)
+bedtools getfasta -fi hg38.fa -bed peaks.bed -fo positives.fasta
+
+# Generate matched negatives (random accessible genome regions)
+# Replace data/train.npz and retrain
+# Expected AUROC on real data: 0.85–0.95
+```
+
+---
+
+## 📦 Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| PyTorch | ≥ 2.0 | Deep learning |
+| NumPy | < 2.0 | Array ops |
+| scikit-learn | ≥ 1.2 | AUROC, metrics |
+| matplotlib | ≥ 3.6 | Plots |
+
+---
+
+## 📚 References
+
+1. Yuan H & Kelley DR. **scBasset** *Nature Methods* 19, 1088 (2022).
+   https://doi.org/10.1038/s41592-022-01562-8
+
+2. Avsec Ž et al. **Enformer** *Nature Methods* 18, 1196 (2021).
+   https://doi.org/10.1038/s41592-021-01252-x
+
+3. Linder J et al. *Nature Genetics* (2025).
+   https://doi.org/10.1038/s41588-024-02053-6
+
+4. He K et al. **Deep Residual Learning** *CVPR* (2016).
+   https://arxiv.org/abs/1512.03385
+
+---
+
+## 👩‍🔬 Author
+
+**Nikhila T. Suresh, PhD**
+Postdoctoral Research Fellow · Florida Atlantic University
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-nikhilatssuresh-0077B5?logo=linkedin)](https://linkedin.com/in/nikhilatssuresh)
+[![GitHub](https://img.shields.io/badge/GitHub-Nikhila123456-181717?logo=github)](https://github.com/Nikhila123456)
+
+---
+
+<div align="center">
+<i>If you find this useful, please ⭐ the repo!</i>
+</div>
