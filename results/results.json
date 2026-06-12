@@ -1,0 +1,29 @@
+{
+  "config": {
+    "data_dir": "data",
+    "seq_length": 500,
+    "n_filters_1": 128,
+    "n_filters_2": 256,
+    "n_residual": 4,
+    "dropout": 0.1,
+    "batch_size": 64,
+    "n_epochs": 30,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "patience": 5,
+    "results_dir": "results",
+    "model_path": "results/best_model.pt",
+    "seed": 42
+  },
+  "metrics": {
+    "accuracy": 0.7973333333333333,
+    "auroc": 0.9078876244665718,
+    "auprc": 0.9269465846980419,
+    "sensitivity": 0.6210526315789474,
+    "specificity": 0.9783783783783784,
+    "tp": 472,
+    "tn": 724,
+    "fp": 16,
+    "fn": 288
+  }
+}
