@@ -11,7 +11,7 @@
 
 This project implements a convolutional neural network (CNN) that predicts chromatin
 accessibility (ATAC-seq peaks) directly from DNA sequence. Given a 500 bp DNA window,
-the model outputs the probability that the region is in open chromatin — accessible
+the model outputs the probability that the region is in open chromatin-accessible
 to transcription factors and gene regulatory machinery.
 
 The model is trained on synthetic sequences with embedded transcription factor binding
@@ -26,7 +26,7 @@ underlying sequence-to-function models such as
 ## Main Biological Question
 
 Can a convolutional neural network learn transcription factor binding motifs from raw
-DNA sequence and use them to predict chromatin accessibility — without any pre-computed
+DNA sequence and use them to predict chromatin accessibility- without any pre-computed
 features or prior biological knowledge beyond the sequence itself?
 
 ---
@@ -237,5 +237,5 @@ python predict.py --sequence "ATGCATGCTGAGTCAATGCATGC"
 This project demonstrates practical skills in deep learning model design and
 implementation, DNA sequence encoding, PyTorch pipeline development, binary
 classification for genomics, AUROC-based evaluation, and biological interpretation
-of sequence-to-function predictions — directly applicable to regulatory genomics
+of sequence-to-function predictions- directly applicable to regulatory genomics
 research and computational biology roles in industry and academia.
